@@ -32,9 +32,11 @@ public class ServiceListener {
 		logger.info("disconnect!! " + client.getSessionId()
 				+ "[" + client.getRemoteAddress().toString() + "]");
 
-		Account account = client.get("account");
-		if(account != null) {
-			emitToHome(client, account.getHome(), "leave", account);
+        List<Account> accounts = client.get("accounts");
+		if(accounts != null) {
+            for(Account account: accounts) {
+                emitToHome(client, account.getHome(), "leave", account);
+            }
 		}
 	}
 
@@ -42,7 +44,12 @@ public class ServiceListener {
 	public void onJoin(SocketIOClient client, Account account, AckRequest ack) {
 		logger.info(client.getSessionId() + "] join!!");
 
-		client.set("account", account);
+        List<Account> accounts = client.get("accounts");
+        if(accounts == null) {
+            accounts = new ArrayList<Account>();
+        }
+        accounts.add(account);
+		client.set("accounts", accounts);
 		emitToHome(client, account.getHome(), "join", account);
 	}
 
@@ -50,25 +57,34 @@ public class ServiceListener {
 	public void onLeave(SocketIOClient client, Account account, AckRequest ack) {
 		logger.info(client.getSessionId() + "] leave!!");
 
-		client.set("account", null);
-		emitToHome(client, account.getHome(), "leave", account);
+        List<Account> accounts = client.get("accounts");
+		if(accounts != null) {
+            for(Account account: accounts) {
+                emitToHome(client, account.getHome(), "leave", account);
+            }
+		}
+
 	}
 
 
 	@OnEvent("action")
 	public void onAction(SocketIOClient client, Action action, AckRequest ack) {
 		logger.info(client.getSessionId() + "] recv action!!");
-		Account account = client.get("account");
-
-		emitToAgent(client, account.getHome(), action.getTarget(), "action", action);
+        List<Account> accounts = client.get("accounts");
+        
+        if(accounts != null && accounts.size() > 0) {
+            emitToAgent(client, accounts.get(0).getHome(), action.getTarget(), "action", action);
+        }
 	}
 
 	@OnEvent("result")
 	public void onResult(SocketIOClient client, Result result, AckRequest ack) {
 		logger.info(client.getSessionId() + "] recv result!!");
-		Account account = client.get("account");
+		List<Account> accounts = client.get("accounts");
 
-		emitToAgent(client, account.getHome(), result.getSource(), "result", result);
+        if(accounts != null && accounts.size() > 0) {
+            emitToAgent(client, accounts.get(0).getHome(), result.getSource(), "result", result);
+        }
 	}
 
 	
@@ -76,12 +92,15 @@ public class ServiceListener {
 		int count = 0;
 		for(SocketIOClient client: server.getAllClients()) {
 			if(client != me) {
-				Account account = client.get("account");
-				if(account != null && home.equals(account.getHome())) {
-					logger.info(" -> emit to " + client.getSessionId());
-					client.sendEvent(event, data);
-					count++;
-				}
+				List<Account> accounts = client.get("accounts");
+                if(accounts != null && accounts.size() > 0) {
+                    Account account = accounts.get(0);
+                    if(home.equals(account.getHome())) {
+                        logger.info(" -> emit to " + client.getSessionId());
+                        client.sendEvent(event, data);
+                        count++;
+                    }
+                }
 			}
 		}
 		return count;
@@ -91,12 +110,15 @@ public class ServiceListener {
 		int count = 0;
 		for(SocketIOClient client: server.getAllClients()) {
 			if(client != me) {
-				Account account = client.get("account");
-				if(account != null && home.equals(account.getHome()) && agent.equals(account.getAgent())) {
-					logger.info(" -> emit to " + client.getSessionId());
-					client.sendEvent(event, data);
-					count++;
-				}
+				List<Account> accounts = client.get("accounts");
+                if(accounts != null && accounts.size() > 0) {
+                    Account account = accounts.get(0);
+                    if(home.equals(account.getHome()) && agent.equals(account.getAgent())) {
+                        logger.info(" -> emit to " + client.getSessionId());
+                        client.sendEvent(event, data);
+                        count++;
+                    }
+                }
 			}
 		}
 		return count;
