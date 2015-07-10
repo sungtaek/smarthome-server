@@ -1,5 +1,8 @@
 package org.jinsu.smarthome;
 
+import java.util.List;
+import java.util.ArrayList;
+
 import org.jinsu.smarthome.model.Account;
 import org.jinsu.smarthome.model.Action;
 import org.jinsu.smarthome.model.Result;
@@ -54,7 +57,7 @@ public class ServiceListener {
 	}
 
 	@OnEvent("leave")
-	public void onLeave(SocketIOClient client, Account account, AckRequest ack) {
+	public void onLeave(SocketIOClient client, AckRequest ack) {
 		logger.info(client.getSessionId() + "] leave!!");
 
         List<Account> accounts = client.get("accounts");

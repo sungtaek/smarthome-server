@@ -1,9 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.jinsu</groupId>
-  <artifactId>smarthome-server</artifactId>
+  <artifactId>Smarthome-server</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   
+  <properties>
+      <project.build.sourceEncoding>utf-8</project.build.sourceEncoding>
+  </properties>
+
   <dependencies>
   	<dependency>
   		<groupId>com.corundumstudio.socketio</groupId>
@@ -16,4 +20,75 @@
         <version>1.7.5</version>
     </dependency>
   </dependencies>
+
+  <build>
+      <plugins>
+          <!--
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-jar-plugin</artifactId>
+              <version>2.3.2</version>
+              <configuration>
+                  <archive>
+                      <manifest>
+                          <mainClass>org.jinsu.smarthome.Server</mainClass>
+                          <addClasspath>true</addClasspath>
+                          <classpathPrefix>lib/</classpathPrefix>
+                      </manifest>
+                  </archive>
+              </configuration>     
+          </plugin>
+
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-dependency-plugin</artifactId>
+              <version>2.3</version>
+              <executions>
+                  <execution>
+                      <id>copy-dependencies</id>
+                      <phase>prepare-package</phase>
+                      <goals>
+                          <goal>copy-dependencies</goal>
+                      </goals>
+                  </execution>
+              </executions>
+              <configuration>
+                  <outputDirectory>target/lib</outputDirectory>
+                  <overWriteIfNewer>true</overWriteIfNewer>
+              </configuration>
+          </plugin>     
+          -->
+          <plugin>
+              <artifactId>maven-assembly-plugin</artifactId>
+              <version>2.2</version>
+              <executions>
+                  <execution>
+                      <id>jar-with-dependencies</id>
+                      <phase>package</phase>
+                      <goals>
+                          <goal>single</goal>
+                      </goals>
+                      <configuration>
+                          <appendAssemblyId>false</appendAssemblyId>
+                          <descriptorRefs>
+                              <descriptorRef>jar-with-dependencies</descriptorRef>
+                          </descriptorRefs>
+                          <archive>
+                              <manifest>
+                                  <mainClass>org.jinsu.smarthome.Server</mainClass>
+                              </manifest>
+                          </archive>
+                      </configuration>
+                  </execution>
+              </executions>
+          </plugin>
+      </plugins>
+
+      <resources>
+          <resource>
+              <directory>src/main/resources</directory>
+          </resource>
+      </resources>    
+  </build>
+
 </project>
