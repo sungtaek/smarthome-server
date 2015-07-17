@@ -16,4 +16,18 @@ public class Account {
 	public void setAgent(String agent) {
 		this.agent = agent;
 	}
+
+    @Override
+    public boolean equals(Object o) {
+        if(o==this) {
+            return true;
+        }
+        if(!(o instanceof Account)) {
+            return false;
+        }
+
+        Account c = (Account) o;
+
+        return home.equals(c.home) && agent.equals(c.agent);
+    }
 }

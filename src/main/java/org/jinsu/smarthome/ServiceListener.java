@@ -47,26 +47,17 @@ public class ServiceListener {
 	public void onJoin(SocketIOClient client, Account account, AckRequest ack) {
 		logger.info(client.getSessionId() + "] join!!");
 
-        List<Account> accounts = client.get("accounts");
-        if(accounts == null) {
-            accounts = new ArrayList<Account>();
-        }
-        accounts.add(account);
-		client.set("accounts", accounts);
+        releasePrevAccount(client, account);
+        addAccount(client, account);
 		emitToHome(client, account.getHome(), "join", account);
 	}
 
 	@OnEvent("leave")
-	public void onLeave(SocketIOClient client, AckRequest ack) {
+	public void onLeave(SocketIOClient client, Account account, AckRequest ack) {
 		logger.info(client.getSessionId() + "] leave!!");
 
-        List<Account> accounts = client.get("accounts");
-		if(accounts != null) {
-            for(Account account: accounts) {
-                emitToHome(client, account.getHome(), "leave", account);
-            }
-		}
-
+        removeAccount(client, account);
+        emitToHome(client, account.getHome(), "leave", account);
 	}
 
 
@@ -76,7 +67,16 @@ public class ServiceListener {
         List<Account> accounts = client.get("accounts");
         
         if(accounts != null && accounts.size() > 0) {
-            emitToAgent(client, accounts.get(0).getHome(), action.getTarget(), "action", action);
+            int count = 0;
+            count = emitToAgent(client, accounts.get(0).getHome(), action.getTarget(), "action", action);
+            if(count <= 0) {
+                Result result = new Result();
+                result.setSource(action.getSource());
+                result.setTarget(action.getTarget());
+                result.setCode(403);
+                result.setMessage("not found agent");
+                client.sendEvent("result", result);
+            }
         }
 	}
 
@@ -88,20 +88,56 @@ public class ServiceListener {
         if(accounts != null && accounts.size() > 0) {
             emitToAgent(client, accounts.get(0).getHome(), result.getSource(), "result", result);
         }
-	}
+    }
 
-	
+
+    private int addAccount(SocketIOClient client, Account account) {
+        List<Account> accounts = null;
+        accounts = client.get("accounts");
+        if(accounts == null) {
+            accounts = new ArrayList<Account>();
+		    client.set("accounts", accounts);
+        }
+        else {
+            for(Account prev: accounts) {
+                if(prev == account) {
+                    return accounts.size();
+                }
+            }
+        }
+        accounts.add(account);
+        return accounts.size();
+    }
+
+    private int removeAccount(SocketIOClient client, Account account) {
+        int i;
+        List<Account> accounts = null;
+        accounts = client.get("accounts");
+        if(accounts != null && accounts.size() > 0) {
+            for(i=0; i<accounts.size(); i++) {
+                Account prev = accounts.get(i);
+                if(prev == account) {
+                    accounts.remove(i--);
+                }
+            }
+            return accounts.size();
+        }
+        return 0;
+    }
+
 	private int emitToHome(SocketIOClient me, String home, String event, Object data) {
 		int count = 0;
 		for(SocketIOClient client: server.getAllClients()) {
 			if(client != me) {
 				List<Account> accounts = client.get("accounts");
                 if(accounts != null && accounts.size() > 0) {
-                    Account account = accounts.get(0);
-                    if(home.equals(account.getHome())) {
-                        logger.info(" -> emit to " + client.getSessionId());
-                        client.sendEvent(event, data);
-                        count++;
+                    for(Account account: accounts) {
+                        if(home.equals(account.getHome())) {
+                            logger.info(" -> emit to " + client.getSessionId());
+                            client.sendEvent(event, data);
+                            count++;
+                            break;
+                        }
                     }
                 }
 			}
@@ -115,15 +151,27 @@ public class ServiceListener {
 			if(client != me) {
 				List<Account> accounts = client.get("accounts");
                 if(accounts != null && accounts.size() > 0) {
-                    Account account = accounts.get(0);
-                    if(home.equals(account.getHome()) && agent.equals(account.getAgent())) {
-                        logger.info(" -> emit to " + client.getSessionId());
-                        client.sendEvent(event, data);
-                        count++;
+                    for(Account account: accounts) {
+                        if(home.equals(account.getHome()) && agent.equals(account.getAgent())) {
+                            logger.info(" -> emit to " + client.getSessionId());
+                            client.sendEvent(event, data);
+                            count++;
+                            break;
+                        }
                     }
                 }
 			}
 		}
 		return count;
 	}
+
+    private void releasePrevAccount(SocketIOClient me, Account account) {
+        for(SocketIOClient client: server.getAllClients()) {
+			if(client != me) {
+                if(removeAccount(client, account) == 0) {
+                    client.disconnect();
+                }
+			}
+		}
+    }
 }
